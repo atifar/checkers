@@ -22,14 +22,17 @@ def test_checkers_game(mock_stdout, mock_input):
         "game rules were not displayed"
 
     # Then the game prompts to type in their names.
-    # Kat goes first, then Rob.
-    assert game.black_name == 'Kat'
-    assert game.white_name == 'Rob'
+    # Kat enters hers first, then Rob does. The initial game board is
+    # displayed along with the players' names. Kat has the black pieces
+    # while Rob has the white ones.
+    assert game.blacks_turn is True, \
+        "black should be the first to move"
+    assert "Kat plays with the black pieces." in captured_output, \
+        "player names and sides were not displayed"
+    assert "Rob plays with the white pieces." in captured_output, \
+        "player names and sides were not displayed"
 
-    # The initial game board is displayed. Kat has the black pieces
-    # while Rob has the white ones. Both players start with 12 pieces.
-
-    # Kat moves first (9-14).
+    # Playing with the black pieces, Kat moves first (9-14).
     # Rob makes his countermove (23-18).
 
     # Now Kat must jump and capture Rob's man, to which she must answer by
