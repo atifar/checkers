@@ -27,10 +27,10 @@ def test_checkers_game(mock_stdout, mock_input):
     # while Rob has the white ones.
     assert game.blacks_turn is True, \
         "black should be the first to move"
-    assert "Kat plays with the black pieces." in captured_output, \
-        "player names and sides were not displayed"
-    assert "Rob plays with the white pieces." in captured_output, \
-        "player names and sides were not displayed"
+    assert "Kat" in captured_output, \
+        "player names were not displayed"
+    assert "Rob" in captured_output, \
+        "player names were not displayed"
 
     # Playing with the black pieces, Kat moves first (9-14).
     # Rob makes his countermove (23-18).
