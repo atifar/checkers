@@ -1,11 +1,5 @@
 """Checkers game"""
 
-PIECES = {
-    "black man": "bm",
-    "black king": "bk",
-    "white man": "wm",
-    "white king": "wk"
-}
 PIECE_DISP = {
     "wm": " \u26aa ",
     "wk": " \u26c1 ",
@@ -28,6 +22,16 @@ BOX = {
 }
 
 
+def play_game(game):
+    """Run the checkers game
+
+    This is the entry function that runs the entire game.
+    """
+    game.show_rules()
+    game.get_player_names()
+    game.board.display_board(game.black_name, game.white_name)
+
+
 class Checkers:
     """Two-player checkers game
 
@@ -41,22 +45,45 @@ class Checkers:
         self.board = Board()
         self.blacks_turn = True
 
-    def play_game(self):
-        """Run the checkers game
-
-        This is the entry function that runs the entire game.
-        """
-        self.show_rules()
-        self.get_player_names()
-        self.board.display_board(self.black_name, self.white_name)
-
     @staticmethod
     def show_rules():
         """Display game rules"""
         print("Welcome to our checkers game!\n")
-        print("Two players participate with a starting set of 12 game pieces",
-              "each. The players take turns in moving one piece, and black",
-              "starts the game.")  # Finish displaying the rules
+        print("""
+            Two players participate in the game. Each has a starting set of 12
+            game pieces (men), one set white and the other black. Each player's
+            men are initially placed on the 12 dark squares of the board
+            closest to them. The player with the black pieces starts the game,
+            then the players take turns moving one piece each turn.
+
+            There are two types of moves, a simple move and a jump. for both
+            types of moves an uncrowned piece (man) may only move forward,
+            while a crowned piece (king) may move in any diagonal direction.
+            Initially all pieces are uncrowned. A piece that reaches the edge
+            of the board (moving in the forward direction) becomes crowned
+            (king).
+
+            As simple move consists of sliding a piece one square diagonally
+            to an adjacent dark square. After a simple move the player's turn
+            ends.
+
+            A jump is a move from a square diagonally adjacent to an opponent's
+            piece to an empty dark square immediately beyond it, in the same
+            direction (jumping over the opponent's piece). A jumped piece is
+            considered captured, and is removed from the board. If after a
+            jump another jump is possible with the same piece, it must be
+            taken. If more than one multiple-jump move is possible, the
+            player may choose among them.
+
+            Jumping is mandatory. If both types of moves are possible, a jump
+            must be taken. A player must continue the jump sequence until no
+            further jump is available, at which point the turn ends.
+
+            A player wins by capturing all of the opponent's pieces or by
+            leaving the opponent with no legal move. The game may also end
+            in a draw if neither side can force a win, and one side is
+            offering a draw which the opponent accepts.
+        """)  # Finish displaying the rules
 
     def get_player_names(self):
         """Prompt for player names"""
@@ -68,9 +95,8 @@ class Board:
     """Game board for checkers
 
     The reachable squares on the board are numbered from 1 to 32, which are
-    represented in the self.squares[0-31] list containing string values. An
-    empty square corresponds to an empty string, and the other four possibe
-    pieces on a square correspond to the values of the PIECES dictionary.
+    represented in the self.squares[0-31] list containing string values.
+    Valid string values are those of the keys of the PIECE_DISP dictionary.
 
     The standard notation for the reachable squares on the board (1-32) is
     used in the user interface, e.g. in displaying a player's move, and for
@@ -86,16 +112,15 @@ class Board:
     def __init__(self):
         """Construct game board"""
         # 12 initial black men on squares 0-11
-        self.squares = [PIECES["black man"] for _ in range(12)]
+        self.squares = ["bm" for _ in range(12)]
         # 8 blank squares on 12-19
         self.squares.extend(["" for _ in range(8)])
         # 12 initial black men on squares 20-31
-        self.squares.extend([PIECES["white man"] for _ in range(12)])
+        self.squares.extend(["wm" for _ in range(12)])
 
     def get_board_stats(self):
         """Return stats of pieces and empty squares on the board"""
-        stats = dict.fromkeys(PIECES.values(), 0)
-        stats[""] = 0
+        stats = dict.fromkeys(PIECE_DISP.keys(), 0)
         for piece in self.squares:
             stats[piece] += 1
         return stats
@@ -140,4 +165,4 @@ class Board:
 
 if __name__ == "__main__":
     game = Checkers()
-    game.play_game()
+    play_game(game)

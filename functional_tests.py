@@ -7,7 +7,7 @@ Py.test is the framework used for these tests.
 """
 from io import StringIO
 from unittest.mock import patch
-from .checkers import Checkers
+from .checkers import Checkers, play_game
 
 
 @patch('builtins.input', side_effect=['Kat', 'Rob'])
@@ -16,9 +16,12 @@ def test_checkers_game(mock_stdout, mock_input):
     # Kat and Rob have decided to challenge each other in a game of checkers.
     # They launch the checkers application, and see the game's rules displayed.
     game = Checkers()
-    game.play_game()
+    # game.play_game()
+    play_game(game)
     captured_output = mock_stdout.getvalue()
     assert "Welcome to our checkers game!" in captured_output, \
+        "welcome message was not displayed"
+    assert "a draw which the opponent accepts." in captured_output, \
         "game rules were not displayed"
 
     # Then the game prompts to type in their names.

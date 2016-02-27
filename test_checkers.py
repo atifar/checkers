@@ -4,8 +4,8 @@ from copy import copy
 from io import StringIO
 from unittest.mock import patch
 import pytest
-from .checkers import Checkers, Board
-from .checkers import PIECES, PIECE_DISP, BOX
+from .checkers import Checkers, Board, play_game
+from .checkers import PIECE_DISP, BOX
 
 # Constants used in testing the board display functions
 VB = BOX["vb"]  # Vertical bar
@@ -60,11 +60,11 @@ class TestBoardClass:
 
     def test_board_initial_piece_locations(self, game_board):
         for index in range(12):
-            assert game_board.get_square(index) == PIECES["black man"]
+            assert game_board.get_square(index) == "bm"
         for index in range(12, 20):
             assert game_board.get_square(index) == ""
         for index in range(20, 32):
-            assert game_board.get_square(index) == PIECES["white man"]
+            assert game_board.get_square(index) == "wm"
 
     def test_get_board_stats(self, game_board):
         updates = [(7, ""), (9, ""), (15, "wk"), (19, "bm"), (21, "")]
@@ -117,7 +117,7 @@ class TestCheckersClass:
     def test_game_updates_default_player_names(self, mock_input, game):
         assert game.black_name == "Peter"
         assert game.white_name == "Amanda"
-        game.play_game()
+        play_game(game)
         assert game.black_name == "Kat"
         assert game.white_name == "Rob"
 
@@ -164,7 +164,6 @@ class TestCheckersClass:
         TestBoardClass.update_board(game.board, updates)
         game.board.display_board("Kat", "Rob")
         captured_output = mock_stdout.getvalue()
-        # assert False, "intentionally fail"
         board_lines[6] = VB + (WM+WH_SQ) * 3 + BM + WH_SQ + "\n" + MID
         board_lines[7] = (WH_SQ+WM) * 2 + WH_SQ + WK + WH_SQ + BK + VB + \
             "\n" + MID
