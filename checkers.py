@@ -1,11 +1,13 @@
 """Checkers game"""
 
+import os
+
 PIECE_DISP = {
     "wm": " \u26aa ",
     "wk": " \u26c1 ",
     "bm": " \u26ab ",
     "bk": " \u26c3 ",
-    "": "   "
+    "": "\u2591" * 3
 }
 BOX = {
     "vb": "\u2502",
@@ -29,6 +31,7 @@ def play_game(game):
     """
     game.show_rules()
     game.get_player_names()
+    os.system('clear')
     game.board.display_board(game.black_name, game.white_name)
 
 
@@ -48,47 +51,61 @@ class Checkers:
     @staticmethod
     def show_rules():
         """Display game rules"""
-        print("Welcome to our checkers game!\n")
-        print("""
-            Two players participate in the game. Each has a starting set of 12
-            game pieces (men), one set white and the other black. Each player's
-            men are initially placed on the 12 dark squares of the board
-            closest to them. The player with the black pieces starts the game,
-            then the players take turns moving one piece each turn.
+        rules = """
+Welcome to this awesome checkers game!
 
-            There are two types of moves, a simple move and a jump. for both
-            types of moves an uncrowned piece (man) may only move forward,
-            while a crowned piece (king) may move in any diagonal direction.
-            Initially all pieces are uncrowned. A piece that reaches the edge
-            of the board (moving in the forward direction) becomes crowned
-            (king).
 
-            As simple move consists of sliding a piece one square diagonally
-            to an adjacent dark square. After a simple move the player's turn
-            ends.
+The game rules are as follows:
 
-            A jump is a move from a square diagonally adjacent to an opponent's
-            piece to an empty dark square immediately beyond it, in the same
-            direction (jumping over the opponent's piece). A jumped piece is
-            considered captured, and is removed from the board. If after a
-            jump another jump is possible with the same piece, it must be
-            taken. If more than one multiple-jump move is possible, the
-            player may choose among them.
+Two players participate in the game. Each has a starting set of 12
+game pieces (men), one set white and the other black. Each player's
+men are initially placed on the 12 dark squares of the board
+closest to them. The player with the black pieces starts the game,
+then the players take turns moving one piece each turn.
 
-            Jumping is mandatory. If both types of moves are possible, a jump
-            must be taken. A player must continue the jump sequence until no
-            further jump is available, at which point the turn ends.
+There are two types of moves, a simple move and a jump. for both
+types of moves an uncrowned piece (man) may only move forward,
+while a crowned piece (king) may move in any diagonal direction.
+Initially all pieces are uncrowned. A piece that reaches the edge
+of the board (moving in the forward direction) becomes crowned
+(king).
 
-            A player wins by capturing all of the opponent's pieces or by
-            leaving the opponent with no legal move. The game may also end
-            in a draw if neither side can force a win, and one side is
-            offering a draw which the opponent accepts.
-        """)  # Finish displaying the rules
+As simple move consists of sliding a piece one square diagonally
+to an adjacent dark square. After a simple move the player's turn
+ends.
+
+A jump is a move from a square diagonally adjacent to an opponent's
+piece to an empty dark square immediately beyond it, in the same
+direction (jumping over the opponent's piece). A jumped piece is
+considered captured, and is removed from the board. If after a
+jump another jump is possible with the same piece, it must be
+taken. If more than one multiple-jump move is possible, the
+player may choose among them.
+
+Jumping is mandatory. If both types of moves are possible, a jump
+must be taken. A player must continue the jump sequence until no
+further jump is available, at which point the turn ends.
+
+A player wins by capturing all of the opponent's pieces or by
+leaving the opponent with no legal move. The game may also end
+in a draw if neither side can force a win, and one side is
+offering a draw which the opponent accepts.
+        """
+        print(rules)
 
     def get_player_names(self):
         """Prompt for player names"""
-        self.black_name = input("Player for black, please type in your name: ")
-        self.white_name = input("Player for white, please type in your name: ")
+        for color in ('black', 'white'):
+            prompt = "Player for {}, please type in your name: ".format(color)
+            while True:
+                name = input(prompt)
+                if name:
+                    if color == 'black':
+                        self.black_name = name
+                    else:
+                        self.white_name = name
+                    print("Thank you!")
+                    break
 
 
 class Board:
@@ -134,7 +151,7 @@ class Board:
 
     def get_row(self, row):
         """Return a string representing a board's row"""
-        empty_sq = "   " + BOX["vb"]
+        empty_sq = PIECE_DISP[""] + BOX["vb"]
         first_idx = (row - 1) * 4
         row_out = "".join([
             PIECE_DISP[p] + BOX["vb"] +
@@ -145,7 +162,10 @@ class Board:
             row_out = BOX["vb"] + empty_sq + row_out + BOX["vb"]
         else:
             row_out = BOX["vb"] + row_out + BOX["vb"] + empty_sq
-        return row_out
+        # Reachable squares for the current row in Portable Draughts Notation
+        p_d_notation = "<{}-{}>".format(first_idx + 1, first_idx + 4)
+        return row_out + p_d_notation
+        # return row_out
 
     def display_board(self, black_name, white_name):
         """Display game board"""

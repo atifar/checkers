@@ -29,6 +29,15 @@ WK = PIECE_DISP["wk"]  # White king
 BM = PIECE_DISP["bm"]  # Black man
 BK = PIECE_DISP["bk"]  # Black king
 
+PDN1 = "<1-4>"  # Portable Draughts Notation - Row 1
+PDN2 = "<5-8>"  # Portable Draughts Notation - Row 2
+PDN3 = "<9-12>"  # Portable Draughts Notation - Row 3
+PDN4 = "<13-16>"  # Portable Draughts Notation - Row 4
+PDN5 = "<17-20>"  # Portable Draughts Notation - Row 5
+PDN6 = "<21-24>"  # Portable Draughts Notation - Row 6
+PDN7 = "<25-28>"  # Portable Draughts Notation - Row 7
+PDN8 = "<29-32>"  # Portable Draughts Notation - Row 8
+
 
 ###################################
 # #### Board class tests
@@ -81,7 +90,8 @@ class TestBoardClass:
         updates = [(13, "bm"), (14, "wk"), (15, "bk")]
         game_board = self.update_board(game_board, updates)
         # Build string for updated row
-        correct_line = VB + ES + WH_SQ + BM + WH_SQ + WK + WH_SQ + BK + WH_SQ
+        correct_line = (VB + ES + WH_SQ + BM + WH_SQ + WK + WH_SQ + BK +
+                        WH_SQ + PDN4)
         generated_line = game_board.get_row(row)
         assert len(correct_line) == len(generated_line), \
             "string lengths don't match"
@@ -93,7 +103,8 @@ class TestBoardClass:
         updates = [(24, "bm"), (26, "wk"), (27, "bk")]
         game_board = self.update_board(game_board, updates)
         # Build string for updated row
-        correct_line = WH_SQ + BM + WH_SQ + WM + WH_SQ + WK + WH_SQ + BK + VB
+        correct_line = (WH_SQ + BM + WH_SQ + WM + WH_SQ + WK + WH_SQ + BK +
+                        VB + PDN7)
         generated_line = game_board.get_row(row)
         assert len(correct_line) == len(generated_line), \
             "string lengths don't match"
@@ -117,7 +128,15 @@ class TestCheckersClass:
     def test_game_updates_default_player_names(self, mock_input, game):
         assert game.black_name == "Peter"
         assert game.white_name == "Amanda"
-        play_game(game)
+        game.get_player_names()
+        assert game.black_name == "Kat"
+        assert game.white_name == "Rob"
+
+    @patch('builtins.input', side_effect=['', 'Kat', '', '', 'Rob'])
+    def test_get_player_names_reprompts_on_empty_input(self, mock_input, game):
+        assert game.black_name == "Peter"
+        assert game.white_name == "Amanda"
+        game.get_player_names()
         assert game.black_name == "Kat"
         assert game.white_name == "Rob"
 
@@ -145,14 +164,14 @@ class TestCheckersClass:
         # Build expected string that represents the starting board
         board_lines = [
             UL + (H3+NT) * 7 + H3 + UR,
-            (WH_SQ+BM) * 4 + VB + "\n" + MID,
-            VB + (BM+WH_SQ) * 4 + "\n" + MID,
-            (WH_SQ+BM) * 4 + VB + "\n" + MID,
-            VB + (ES+WH_SQ) * 4 + "\n" + MID,
-            (WH_SQ+ES) * 4 + VB + "\n" + MID,
-            VB + (WM+WH_SQ) * 4 + "\n" + MID,
-            (WH_SQ+WM) * 4 + VB + "\n" + MID,
-            VB + (WM+WH_SQ) * 4,
+            (WH_SQ+BM) * 4 + VB + PDN1 + "\n" + MID,
+            VB + (BM+WH_SQ) * 4 + PDN2 + "\n" + MID,
+            (WH_SQ+BM) * 4 + VB + PDN3 + "\n" + MID,
+            VB + (ES+WH_SQ) * 4 + PDN4 + "\n" + MID,
+            (WH_SQ+ES) * 4 + VB + PDN5 + "\n" + MID,
+            VB + (WM+WH_SQ) * 4 + PDN6 + "\n" + MID,
+            (WH_SQ+WM) * 4 + VB + PDN7 + "\n" + MID,
+            VB + (WM+WH_SQ) * 4 + PDN8,
             LL + (H3+ST) * 7 + H3 + LR
         ]
         board = "\n".join(board_lines)
@@ -164,9 +183,9 @@ class TestCheckersClass:
         TestBoardClass.update_board(game.board, updates)
         game.board.display_board("Kat", "Rob")
         captured_output = mock_stdout.getvalue()
-        board_lines[6] = VB + (WM+WH_SQ) * 3 + BM + WH_SQ + "\n" + MID
+        board_lines[6] = VB + (WM+WH_SQ) * 3 + BM + WH_SQ + PDN6 + "\n" + MID
         board_lines[7] = (WH_SQ+WM) * 2 + WH_SQ + WK + WH_SQ + BK + VB + \
-            "\n" + MID
+            PDN7 + "\n" + MID
         board = "\n".join(board_lines)
         assert board in captured_output, \
             "updated board display is incorrect"
