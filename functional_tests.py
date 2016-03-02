@@ -7,7 +7,7 @@ Py.test is the framework used for these tests.
 """
 from io import StringIO
 from unittest.mock import patch
-from .checkers import Checkers, play_game
+from .checkers import Checkers
 
 
 ###################################
@@ -35,7 +35,7 @@ class TestCheckersGame:
         with patch('builtins.input', side_effect=['Kat', 'Rob']), \
                 patch('sys.stdout', new_callable=StringIO) as mock_stdout:
             game.get_player_names()
-            game.board.display_board(game.black_name, game.white_name)
+            game.board.display_board(game)
         captured_output = mock_stdout.getvalue()
         assert "Player for black, please type in your name: ", \
             "black player should be prompted to enter their name"
@@ -51,9 +51,11 @@ class TestCheckersGame:
     def test_game_play_black_wins(self):
         # Kat and Rob are starting a new checkers game.
         game = Checkers()
-        with patch('builtins.input', side_effect=['Kat', 'Rob']), \
+        with patch('builtins.input', side_effect=['Kat', 'Rob', '10']), \
                 patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            play_game(game)
+            game.show_rules()
+            game.get_player_names()
+            game.get_player_move_from()
         captured_output = mock_stdout.getvalue()
         assert "Kat" in captured_output, \
             "player names were not displayed"
