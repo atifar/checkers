@@ -5,9 +5,9 @@ import os
 # Display representation of "reachable" squares
 PIECE_DISP = {
     "wm": " \u26aa ",
-    "wk": " \u26c1 ",
+    "wk": " \u265a ",
     "bm": " \u26ab ",
-    "bk": " \u26c3 ",
+    "bk": " \u2654 ",
     "": "   "
 }
 # Display representation of "non-reachable" white squares
@@ -38,40 +38,54 @@ def play_game(game):
     while True:
         curr_player = game.black_name if game.blacks_turn else \
             game.white_name
+        # Prompt for player input
         move = game.get_player_move_from()
         if move == 'r':
-            game.draw_offered = False
             print("{} has resigned. Game over!".format(curr_player))
             break
         elif move == 'd':
-            if game.draw_offered:
+            game.move_msg = "{} is offering a draw.".format(curr_player)
+            if game.draw_accepted():
                 print("Game ended in a draw!")
                 break
             else:
-                game.draw_offered = True
-                game.move_msg = "{} is offering a draw.".format(curr_player)
-                game.switch_to_opponent()
+                # Clear move message before the next move
+                game.move_msg = ""
                 continue
         # Here move contains the number of a square. Convert it to integer in
         # internal representation
         square = int(move) - 1
-        game.draw_offered = False
-        # Validate that the 'square' piece is legal to play; Return True/False,
-        # and set move_msg in validate()
-        if game.board.validate_piece(game, square):
+        # Validate that the piece on the selected square is legal to play
+        if game.validate_pick(square):
+            # Prompt player for square to move to
             while True:
-                move_to = game.get_player_move_to()  # Return legal move_to
-                # Perform move, including capture, crowning
-                # if turn is over, reset piece_to_move, move_msg, move_to, then
-                #       break out of loop
-                # else set piece_to_move = move_to, continue with next loop
+                move_to = game.get_player_move_to()
+                # Convert it to internal representation
+                square = int(move_to) - 1
+                # Validate that the selected square is legal to move to
+                if game.validate_move_to(square):
+                    game.board.move_piece_to(game, square)
+                else:
+                    continue
+                if game.turn_is_complete(square):
+                    # It was a simple move or no more jumps are available
+                    game.game_piece_to_move = None
+                    game.must_jump = False
+                    break
+                # More jumps are available, which must be taken
+                game.game_piece_to_move = square
+                continue
         else:
-            # move_msg was set by validate
+            # Return to the top of the game loop to prompt the player again
+            continue
+        # The current player's turn has completed. Switch turns.
+        game.switch_turns()
+        if game.has_player_lost():
+            game.board.display_board(game)
+            winner = game.white_name if game.blacks_turn else game.black_name
+            print("Congratulations {}! You have won.".format(winner))
             break
-        # Turn has been switched by this point.
-        if game.board.is_game_over(game):
-            # Display winner and exit loop
-            break
+    # Game over
     print("Good bye!")
 
 
@@ -88,8 +102,8 @@ class Checkers:
         self.board = Board()
         self.blacks_turn = True
         self.move_msg = ''
-        self.draw_offered = False
         self.game_piece_to_move = None
+        self.must_jump = False
 
     @staticmethod
     def show_rules():
@@ -110,8 +124,8 @@ There are two types of moves, a simple move and a jump. for both
 types of moves an uncrowned piece (man) may only move forward,
 while a crowned piece (king) may move in any diagonal direction.
 Initially all pieces are uncrowned. A piece that reaches the edge
-of the board (moving in the forward direction) becomes crowned
-(king).
+row, aka kings row, (moving in the forward direction) becomes crowned
+(promoted to a king).
 
 As simple move consists of sliding a piece one square diagonally
 to an adjacent dark square. After a simple move the player's turn
@@ -127,7 +141,8 @@ player may choose among them.
 
 Jumping is mandatory. If both types of moves are possible, a jump
 must be taken. A player must continue the jump sequence until no
-further jump is available, at which point the turn ends.
+further jump is available, at which point the turn ends. Jumping
+into the kings row always ends the turn.
 
 A player wins by capturing all of the opponent's pieces or by
 leaving the opponent with no legal move. The game may also end
@@ -150,12 +165,24 @@ offering a draw which the opponent accepts.
                     print("Thank you!")
                     break
 
-    def get_player_move_from(self):
-        """Gets player's next move
+    def draw_accepted(self):
+        """Get opponent's answer to draw offer and return it
 
-        Displays the game board then prints any error message from previous
-        input validation, then prompts for player input. Accepts only 'r', 'd'
-        or 1-32 input, otherwise reprompts. Returns accepted input, and resets
+        Return True if draw was accepted, otherwise return False.
+        """
+        self.board.display_board(self)
+        opponent = self.white_name if self.blacks_turn else self.black_name
+        print("{}, ".format(opponent) + self.move_msg + "\n")
+        prompt = "Enter 'y' to accept the draw or anything else" +\
+            " to reject it.\n -> "
+        return input(prompt).lower() == "y"
+
+    def get_player_move_from(self):
+        """Get player's next move
+
+        Display the game board then print any error message from previous
+        input validation and prompt for player input. Accept only 'r', 'd'
+        or 1-32 input, otherwise reprompt. Return accepted input, and reset
         error message to empty string.
         """
         valid_moves = [str(i) for i in range(1, 33)]
@@ -173,6 +200,28 @@ offering a draw which the opponent accepts.
                 return move
             self.move_msg = 'Invalid entry. Try again!'
 
+    def get_player_move_to(self):
+        """Get player's selection of where to move picked-up piece.
+
+        Display the game board then print any error message from previous
+        input validation and prompt for player input. Accept only a square
+        (1-32) as input, otherwise reprompt. Return accepted input.
+        """
+        valid_moves = [str(i) for i in range(1, 33)]
+        curr_player = self.black_name if self.blacks_turn else self.white_name
+        input_message = ''
+        while True:
+            self.board.display_board(self)
+            print("{}, it is your turn.".format(curr_player))
+            print(self.move_msg)
+            print(input_message)
+            prompt = "Where do you want to move this piece?\n" +\
+                "1 - 32 to pick a square to move to -> "
+            move = input(prompt).lower()
+            if move in valid_moves:
+                return move
+            input_message = 'Invalid entry. Try again!'
+
     def get_available_moves(self):
         """Return all available moves for current player
 
@@ -185,17 +234,145 @@ offering a draw which the opponent accepts.
         for idx, piece in enumerate(self.board.squares):
             # Check only squares with pieces belonging to the current player
             if piece in active_pieces:
-                if self.board.can_jump(idx, opponents):
+                if self.board.valid_jumps(idx, opponents):
                     moves.append((idx, True))
-                elif self.board.can_move(idx):
+                elif self.board.valid_moves(idx):
                     moves.append((idx, False))
         return moves
 
-    def switch_to_opponent(self):
+    def square_is_empty_or_has_opponents_piece(self, square):
+        """Check if square has no legal piece to move
+
+        If the selected square has no or the opponent's piece on it, set
+        message and return True. Otherwise reset message to empty string
+        and return False.
+        """
+        wrong_pieces = ("wm", "wk", "") if self.blacks_turn else \
+            ("bm", "bk", "")
+        if self.board.get_square(square) in wrong_pieces:
+            self.move_msg = "You don't have a piece on that square to move."
+            return True
+        self.move_msg = ""
+        return False
+
+    def available_jump_or_move_exists(self, square, moves):
+        """Check if the piece on square can jump or make a simple move
+
+        If the piece on 'square' either has an available jump, or it has an
+        available simple move but no other piece of the current player has
+        an available jump, then set move message, set the game_piece_to_move
+        and must_jump attributes and return True. Otherwise only set the move
+        message to indicate why the selected piece has no legal move, and
+        return False.
+        """
+        # Selected piece has available jump
+        if tuple((square, True)) in moves:
+            # Use standard square notation in message
+            self.move_msg = "Picked up piece from {}.".format(square+1)
+            self.game_piece_to_move = square
+            self.must_jump = True
+            return True
+        # Selected piece has available simple move
+        elif tuple((square, False)) in moves:
+            # No other piece has available jump
+            if any([jump for sq, jump in moves]) is False:
+                # Use standard square notation in message
+                self.move_msg = "Picked up piece from {}.".format(square+1)
+                self.game_piece_to_move = square
+                self.must_jump = False
+                return True
+            else:
+                self.move_msg = "You cannot move piece from {}.".format(
+                    square+1) + " Take available jump."
+                return False
+        # No legal jump or move (use standard square notation)
+        self.move_msg = "The piece from {} has no legal move.".format(square+1)
+        return False
+
+    def validate_pick(self, square):
+        """Validate that moving the piece from the selected square is legal.
+
+        Return False and set the message accordingly if the square is empty
+        or if one of the opponents' pieces is on it. If the piece on the
+        selected square either has an available jump or it has an available
+        simple move while no other piece of the current player has an available
+        jump, then return True. Also return False if the selected piece
+        has no available jump or move.
+
+        When this function exits, the following instance attributes have been
+        set to appropriate values: move_msg, game_piece_to_move, must_jump.
+        """
+        if self.square_is_empty_or_has_opponents_piece(square):
+            return False
+        moves = self.get_available_moves()
+        if self.available_jump_or_move_exists(square, moves):
+            return True
+        return False
+
+    def validate_move_to(self, square):
+        """Validate that the selected square is legal to move to.
+
+        Return True if selected move is legal, otherwise return False.
+        """
+        # Jump must be taken
+        if self.must_jump:
+            opponents = ("wm", "wk") if self.blacks_turn else ("bm", "bk")
+            if square in self.board.valid_jumps(self.game_piece_to_move,
+                                                opponents):
+                return True
+            else:
+                self.move_msg = "The piece from {} must jump.".format(
+                    self.game_piece_to_move+1)
+                return False
+        # No jump, so a simple move must be taken
+        else:
+            if square in self.board.valid_moves(self.game_piece_to_move):
+                return True
+            else:
+                self.move_msg = "Invalid move from {}.".format(
+                    self.game_piece_to_move+1) + " Try again!"
+                return False
+
+    def turn_is_complete(self, square):
+        """Determine if the current turn is complete
+
+        After a simple move the current turn is complete. After a jump if
+        the jumping piece has no further jump available, then the turn is
+        complete. Return True if the current turn is complete, otherwise
+        return False.
+        """
+        # After a simple move (or jumping into the kings row)
+        if not self.must_jump:
+            return True
+        # After a jump check if a further jump is available
+        moves = self.get_available_moves()
+        if tuple((square, True)) in moves:
+            self.move_msg = "The piece from {} must jump.".format(square+1)
+            return False
+        else:
+            return True
+
+    def has_player_lost(self):
+        """Check if the current player has any piece to play.
+
+        Return True if the current player has no piece left or none of
+        the remaining pieces have available moves or jumps. Otherwise
+        return False.
+        """
+        board_stats = self.board.get_board_stats()
+        # Does player have no piece left on the board?
+        if (self.blacks_turn and board_stats["bm"]+board_stats["bk"] == 0 or
+            not self.blacks_turn and board_stats["wm"]+board_stats["wk"] == 0):
+            return True
+        # Does the current player has any piece to play?
+        return not self.get_available_moves()
+
+    def switch_turns(self):
         """Switches to other player's turn"""
         self.blacks_turn = not self.blacks_turn
         self.move_msg = ''
-        self.piece_to_move = None
+        self.game_piece_to_move = None
+        self.must_jump = False
 
 
 class Board:
@@ -290,84 +467,109 @@ class Board:
             else:
                 return False
 
-    def can_jump(self, square_idx, opponents):
-        """Determine if the piece on given square can jump
+    def valid_jumps(self, square, opponents):
+        """Find all legal jumps for the piece on square
 
-        Return True if piece at square_idx has an available jump, otherwise
-        return False. This function assumes that it's only called if the
-        piece at square_idx belongs to the player in the current turn.
+        Return the list of all legal jumps the piece on square.
         """
-        if self.get_square(square_idx) in ("bm", "bk", "wk"):
+        jumps = []
+        if self.get_square(square) in ("bm", "bk", "wk"):
             # "bm", "bk" or "wk" can move in southerly direction
             # Can jump in SE direction?
-            if self.jump_room_exists(square_idx, "SE"):
-                diag_offs = 4 if (square_idx//4) % 2 else 5
-                if self.get_square(square_idx+diag_offs) in opponents:
-                    return True  # Jump available in SE direction
+            if self.jump_room_exists(square, "SE"):
+                diag_offs = 4 if (square//4) % 2 else 5
+                if self.get_square(square+diag_offs) in opponents:
+                    # Jump offset in SE direction is 9
+                    jumps.append(square+9)  # Add available jump
             # Can jump in SW direction?
-            if self.jump_room_exists(square_idx, "SW"):
-                diag_offs = 3 if (square_idx//4) % 2 else 4
-                if self.get_square(square_idx+diag_offs) in opponents:
-                    return True  # Jump available in SW direction
-        if self.get_square(square_idx) in ("bk", "wm", "wk"):
+            if self.jump_room_exists(square, "SW"):
+                diag_offs = 3 if (square//4) % 2 else 4
+                if self.get_square(square+diag_offs) in opponents:
+                    # Jump offset in SW direction is 7
+                    jumps.append(square+7)  # Add available jump
+        if self.get_square(square) in ("bk", "wm", "wk"):
             # "bk", "wm" or "wk" can move in northerly direction
             # Can jump in NE direction?
-            if self.jump_room_exists(square_idx, "NE"):
-                diag_offs = -4 if (square_idx//4) % 2 else -3
-                if self.get_square(square_idx+diag_offs) in opponents:
-                    return True  # Jump available in NE direction
+            if self.jump_room_exists(square, "NE"):
+                diag_offs = -4 if (square//4) % 2 else -3
+                if self.get_square(square+diag_offs) in opponents:
+                    # Jump offset in NE direction is -7
+                    jumps.append(square-7)  # Add available jump
             # Can jump in NW direction?
-            if self.jump_room_exists(square_idx, "NW"):
-                diag_offs = -5 if (square_idx//4) % 2 else -4
-                if self.get_square(square_idx+diag_offs) in opponents:
-                    return True  # Jump available in NW direction
-        else:
-            return False  # No jump available in any direction
+            if self.jump_room_exists(square, "NW"):
+                diag_offs = -5 if (square//4) % 2 else -4
+                if self.get_square(square+diag_offs) in opponents:
+                    # Jump offset in NW direction is -9
+                    jumps.append(square-9)  # Add available jump
+        return jumps
 
-    def can_move(self, square_idx):
-        """Determine if the piece on given square can move
+    def valid_moves(self, square):
+        """Find all legal simple moves for the piece on square
 
-        Return True if piece at square_idx has an available simple move,
-        otherwise return False. This function assumes that it's only called
-        if the piece at square_idx belongs to the player in the current turn.
+        Return the list of all legal simple moves the piece on square.
         """
-        if self.get_square(square_idx) in ("bm", "bk", "wk"):
+        moves = []
+        if self.get_square(square) in ("bm", "bk", "wk"):
             # "bm", "bk" or "wk" can move in southerly direction
             # Can move in SE direction?
-            if square_idx <= 26 and square_idx not in (3, 11, 19):
-                diag_offs = 4 if (square_idx//4) % 2 else 5
-                if self.get_square(square_idx+diag_offs) == "":
-                    return True  # Simple move available in SE direction
+            if square <= 26 and square not in (3, 11, 19):
+                diag_offs = 4 if (square//4) % 2 else 5
+                if self.get_square(square+diag_offs) == "":
+                    moves.append(square+diag_offs)  # Add available move
             # Can move in SW direction?
-            if square_idx <= 27 and square_idx not in (4, 12, 20):
-                diag_offs = 3 if (square_idx//4) % 2 else 4
-                if self.get_square(square_idx+diag_offs) == "":
-                    return True  # Simple move available in SW direction
-        if self.get_square(square_idx) in ("bk", "wm", "wk"):
+            if square <= 27 and square not in (4, 12, 20):
+                diag_offs = 3 if (square//4) % 2 else 4
+                if self.get_square(square+diag_offs) == "":
+                    moves.append(square+diag_offs)  # Add available move
+        if self.get_square(square) in ("bk", "wm", "wk"):
             # "bk", "wm" or "wk" can move in northerly direction
             # Can move in NE direction?
-            if square_idx >= 4 and square_idx not in (11, 19, 27):
-                diag_offs = -4 if (square_idx//4) % 2 else -3
-                if self.get_square(square_idx+diag_offs) == "":
-                    return True  # Simple move available in NE direction
+            if square >= 4 and square not in (11, 19, 27):
+                diag_offs = -4 if (square//4) % 2 else -3
+                if self.get_square(square+diag_offs) == "":
+                    moves.append(square+diag_offs)  # Add available move
             # Can move in NW direction?
-            if square_idx >= 5 and square_idx not in (12, 20, 28):
-                diag_offs = -5 if (square_idx//4) % 2 else -4
-                if self.get_square(square_idx+diag_offs) == "":
-                    return True  # Simple move available in NW direction
-        else:
-            return False  # No simple move available in any direction
+            if square >= 5 and square not in (12, 20, 28):
+                diag_offs = -5 if (square//4) % 2 else -4
+                if self.get_square(square+diag_offs) == "":
+                    moves.append(square+diag_offs)  # Add available move
+        return moves
 
-    def validate_piece(self, game, piece):
-        """Validate that moving the selected piece is legal.
+    def move_piece_to(self, game, square):
+        """Make the selected move
 
-        If 'piece' either has an available jump, or it has an available simple
-        move but no other piece of the current player has an available jump,
-        then the move is valid. For a valid move this function returns True,
-        and clears the message for the next move. For an invalid message the
-        function returns False, and sets the appropriate message.
+        Move the selected piece to the destination square, and crown it if
+        necessary. If it was a jump, remove the captured piece.
+
+        NOTE: Jumping into the kings row ends the turn. This is enforced by
+        setting the must_jump instance attribute to False.
         """
-        pass
+        # Move the current player's piece
+        self.squares[square] = self.squares[game.game_piece_to_move]
+        self.squares[game.game_piece_to_move] = ""
+        # If current player's piece jumped, remove opponent's captured piece
+        if game.must_jump:
+            diag_jump_offs = {
+                -9: (-4, -5),  # NW diagonal offsets
+                -7: (-3, -4),  # NE diagonal offsets
+                7: (4, 3),  # SW diagonal offsets
+                9: (5, 4)  # SE diagonal offsets
+            }
+            jump_offs = square - game.game_piece_to_move
+            even_odd_row = (game.game_piece_to_move//4) % 2
+            captured_offs = diag_jump_offs[jump_offs][even_odd_row]
+            self.squares[game.game_piece_to_move+captured_offs] = ""
+        # Crown destination piece if appropriate
+        if game.blacks_turn:
+            if square > 27:
+                self.squares[square] = "bk"
+                # Jumping into the kings row ends the turn
+                game.must_jump = False
+        else:
+            if square < 4:
+                self.squares[square] = "wk"
+                # Jumping into the kings row ends the turn
+                game.must_jump = False
 
     def display_board(self, game):
         """Display game board with player names after clearing the screen"""

@@ -2,7 +2,6 @@
 
 from io import StringIO
 from unittest.mock import patch
-from unittest import skip
 import pytest
 from .checkers import Checkers, Board
 from .checkers import PIECE_DISP, BOX, WH_SQ
@@ -140,9 +139,6 @@ class TestBoardClass:
         assert empty_board.jump_room_exists(8, "NE") is True
         assert empty_board.jump_room_exists(8, "SE") is False
 
-    # Need tests for can_jump() method
-    # Need tests for can_move() method
-
 
 ###################################
 # #### Checkers class tests
@@ -269,23 +265,22 @@ class TestCheckersClass:
         assert return_move == '8', \
             "invalid 'player_move_from' was returned"
 
-    def test_switch_to_opponent_flips_state(self, game):
-        game.switch_to_opponent()
+    def test_switch_turns_flips_state(self, game):
+        game.switch_turns()
         assert game.blacks_turn is False, \
             "it shoud be white's turn"
-        game.switch_to_opponent()
+        game.switch_turns()
         assert game.blacks_turn is True, \
             "it shoud be black's turn"
 
-    def test_switch_to_opponent_resets_message(self, game):
+    def test_switch_turns_resets_instance_attributes(self, game):
         game.move_msg = "This will not stand!"
-        game.switch_to_opponent()
+        game.game_piece_to_move = 12
+        game.must_jump = None
+        game.switch_turns()
         assert game.move_msg == '', "move_msg should be empty"
-
-    def test_switch_to_opponent_resets_piece_to_move(self, game):
-        game.piece_to_move = 12
-        game.switch_to_opponent()
-        assert game.piece_to_move is None, "piece_to_move was not reset"
+        assert game.game_piece_to_move is None, "piece_to_move was not reset"
+        assert game.must_jump is False, "must_jump should be False"
 
     def test_get_available_moves_black_no_move(self, emptygame):
         updates = [(21, "wm"), (24, "wk"), (28, "bk")]
